@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  gofermart_service:
+    build:
+      context: ..
+      dockerfile: build/docker/go_service.dockerfile
+    command: ./main
+    ports:
+      - "8080:8080"
+    depends_on:
+      - gofermart_postgres_service
+    environment:
+      - DATABASE_DSN=postgres://postgres:qwerty@restapi_dev:5432/restapi_dev?sslmode=disable
+
+  # docker-compose run --rm migrate_exec_service create -ext sql -dir migrations create_users
+  # docker-compose run --rm migrate_exec_service -path migrations -database "postgres://postgres:qwerty@gofermart_postgres_service:5432/restapi_dev?sslmode=disable" up
+  # docker-compose run --rm migrate_exec_service -path migrations -database "postgres://postgres:qwerty@gofermart_postgres_service:5432/restapi_test?sslmode=disable" up
+  migrate_exec_service:
+    image: migrate/migrate
+    depends_on:
+      - gofermart_postgres_service
+    volumes:
+      - ../migrations:/migrations
+#    command: ["-path", "/migrations", "-database",  "postgres://postgres:qwerty@gofermart_postgres_service:5432/restapi_dev?sslmode=disable", "up"]
+    command: ["-path", "/migrations"]
+
+
+  gofermart_postgres_service:
+    restart: always
+    image: postgres:latest
+    container_name: gofermart_postgres_service
+    environment:
+      - POSTGRES_PASSWORD=qwerty
+      - POSTGRES_DB=restapi_dev
+      - POSTGRES_USER=postgres
+    ports:
+      - "5432:5432"
